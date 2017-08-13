@@ -7,7 +7,7 @@
  * @author Alec Avedisyan
  * @copyright 2017 Sparkou.com
  * @package GBM
- * @version 3.0.0
+ * @version 3.1.0
  * @subpackage Includes
  */
 
@@ -30,8 +30,7 @@ if (defined("ROOT_FOLDER")){
 	}
 if (DEBUG_MODE && defined("DEBUG_MODE")){
 	// Error debuging
-	echo "/////////// Debug Mode ///////////  <BR>";
-	echo "W : ".$_REQUEST["W"]."<BR>";
+	echo '<div style="text-align:center">--- Debug mode ---</div>';
 	ini_set("display_errors", "on");
 }else{
 	ini_set("display_errors", "off");
@@ -48,50 +47,72 @@ if (file_exists("../../../gbm.conf.php")){
 
 
 /**
- * Main db function
- * 
- * @ignore V3tested
  * 
  * @global type $id
  * @param type $sql
- * @param type $returnOneRow
- * @param type $multiQuery
- * @param type $debug
- * @assert ('SELECT 1') == 1
+ * @param type $pdoArray
+ * @param type $sqlType		i for insert
  * @return type
  */
-function db($sql, $returnOneRow = FALSE, $multiQuery=FALSE, $debug = FALSE){
-	
+function db($sql, $pdoArray=NULL, $sqlType=''){
 	global $id;
-	$errDB  = 'Unable to connect to database: ';
-	$errSQL = 'Query Failed! SQL: Error: ';
+	if(DEBUG_MODE){
+		$params = array(PDO::ATTR_EMULATE_PREPARES => 1, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION); 
+	}
 	
-	if(DB_TYPE=='mysql'){
-		//MySql connect
-		$link = mysqli_connect(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME,DB_PORT) or die($errDB.' mysql '. mysql_error());
-		//mysqli_select_db($link, DB_MYSQL_NAME);
-		mysqli_set_charset($link, "utf8");
-		if(DEBUG_MODE){	echo msg($sql,'e');}
-		if($multiQuery){
-			$result = mysqli_multi_query($link, $sql) or trigger_error($errSQL.mysqli_error($link), E_USER_ERROR);		
-		}else{
-			$result = mysqli_query($link, $sql) or trigger_error($errSQL.mysqli_error($link), E_USER_ERROR);	
-		}
-	if($returnOneRow){
-		return mysqli_fetch_array($result);
+	// String or array allowed
+	if(!is_array($pdoArray)){
+		$arr[0] = $pdoArray;
+		$pdoArray = $arr;
 	}
-		
-	}elseif (DB_TYPE=='postgres') {
-		
-		$id = pg_connect (PG_CONNECT);
-		if($debug){ echo msg($sql); }
-		if(($result = pg_query($id, $sql)) === FALSE){
-			echo msg(pr(debug_print_backtrace (), FALSE).pg_last_error($id), 'e');
+	
+	try {
+		$connect = new PDO(DB_PDO_CONNECT, DB_USER, DB_PASSWORD, $params);
+		$stmt = $connect->prepare($sql);
+		$execr= $stmt->execute($pdoArray);
+		// In case of Insert
+		if('i'==$sqlType){	return $connect->lastInsertId();}
+		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);	
+	} catch(PDOException $ex) {
+		$code = $ex->getCode();
+		//pr($ex->getTrace());
+		$e = DICO_ERR_PDO;
+		switch ($code){
+			case 1045:		$e = DICO_ERR_DB_CONNECT;			break;
+			case 23000:
+			case 42000:
+			case '42S02':
+			case 'HY093':
+				$tra = $ex->getTrace();
+				unset($tra[0]);
+				foreach($tra as $val){	$T = $val['line'].":\t".$val['file']."\n";	}
+				$e = $ex->getMessage().'<pre>'.$sql."<hr>".$T.'</pre>';
+			break;
+			case 'HY000':	// General Error
+				if(0==sizeof($pdoArray)){	
+					$e = DICO_ERR_PDO_ARRAY_EMPTY;
+				}elseif($execr){
+					$e = DICO_WORD_SQL_EXECUTED.', '.DICO_ERR_FETCH;
+					$stmt->debugDumpParams();
+				}	
+			break;
 		}
+		echo msg(DICO_ERR_CODE.' '.$code.' | '.$e, 'e'); //user friendly message
+		return null;
 	}
-	return $result;
+	
+	return $rows;
 }
 
+
+function dbInsert($allCols, $table){
+	foreach($allCols as $col=>$val){
+		$colname.= $col.', ';
+		$colval.=  ':'.$col.', ';
+	}
+	$sql = 'INSERT INTO '.$table.'('.rtrim($colname, ', ').') VALUES ('.rtrim($colval, ', ').');';
+	return db($sql, $allCols, 'i');
+}
 
 function defConn(){
 	$conn = pg_connect(PG_CONNECT);

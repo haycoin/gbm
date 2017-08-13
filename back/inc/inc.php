@@ -12,13 +12,19 @@
 
 // Search the gbm.conf.php file
 if (file_exists("../../../gbm.conf.php")){
-	require_once("../../../gbm.conf.php");	
+	include_once("../../../gbm.conf.php");	
 }elseif(file_exists("../../gbm.conf.php")){
-	require_once("../../gbm.conf.php");	
+	include_once("../../gbm.conf.php");	
 }elseif(file_exists("../../../../gbm.conf.php")){
-	require_once("../../../../gbm.conf.php");	
+	include_once("../../../../gbm.conf.php");
 }elseif(file_exists("../../../../../gbm.conf.php")){
-	require_once("../../../../../gbm.conf.php");	
+	include_once("../../../../../gbm.conf.php");
+}elseif(file_exists("../gbm.conf.php")){
+	if(DEBUG_MODE){ echo DICO_ERR_CONF_MOVE;}
+	include_once("../gbm.conf.php");
+}else{
+	echo DICO_ERR_CONF_FILE_NOT_FOUND;
+	exit();
 }
 
 define("block_vertical", ROOT_URI."inc/block_list_vertical.inc.php?ID_Block=");
@@ -92,13 +98,13 @@ include_once(ROOT_FOLDER."inc/db_var.inc");
 if ($NO_CSS == TRUE){}else{
 	echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'."\n";
 	echo "\n<style type=\"text/css\">\n<!--\n";
-	include_once ROOT_FOLDER."css/std.inc.css";
+	include_once ROOT_FOLDER_UI."css/std.inc.css";
 	echo "\n-->\n</style>\n";
 	echo "<style type=\"text/css\">\n<!--\n";
-	include_once ROOT_FOLDER."css/list_std.inc.css";
+	include_once ROOT_FOLDER_UI."css/list_std.inc.css";
 	echo "\n-->\n</style>\n";
 }
-include_once(ROOT_FOLDER."css/dynamic.inc.css.php");
+include_once(ROOT_FOLDER_UI."css/dynamic.inc.css.php");
 
 /**
  * Manipulate Variables comming form several sources. 

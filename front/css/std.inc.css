@@ -1,0 +1,51 @@
+/*@FIXIT*/
+BODY {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+TABLE {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	width:100%;
+}
+
+A:LINK, A:ACTIVE, A:HOVER, A:VISITED {TEXT-DECORATION: none}
+A:LINK, A:ACTIVE, A:VISITED {COLOR: #000000}
+A:HOVER {COLOR: #E33131}.discret {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 9px;
+	font-weight: lighter;
+	color: #000000;
+}
+
+SELECT,TEXTAREA, INPUT {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	border: 1px solid #333333;
+}
+
+TEXTAREA,INPUT[type="text"]{
+	width:200px;
+}
+
+FORM{
+	margin: 0px;
+	padding: 0px;	
+
+}
+
+#loading {
+	width: 50%;
+	height: 50%;
+	left: 25%;
+	top: 25%;
+	filter:alpha(opacity=80);
+	opacity: 0.5; 	
+	-moz-opacity:0.8;
+	background-color: #FFFFFF;
+	position: absolute;
+	text-align: center;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	font-weight: bold;
+	border: thin double #CCCCCC;
+}

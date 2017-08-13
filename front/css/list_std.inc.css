@@ -1,0 +1,26 @@
+/*@FIXIT*/
+.titreList {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	font-weight: bold;
+	color: #000000;
+	background-color: #FFF8CE;
+}
+
+.Ligne0 {
+	background-color: #ECECFF;
+}
+.Ligne1 {
+	background-color: #FFFFFF;
+}
+.LigneSelected {
+	background-color: #CCECFF;
+}
+
+
+.AvertissementField {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 9px;
+	color: #FF0000;
+	border: 0px none;
+}

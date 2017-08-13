@@ -14,7 +14,8 @@
  */
 
 
-if(eregi(".*/back/.*",$_SERVER['REQUEST_URI'])){
+//if(eregi(".*/back/.*",$_SERVER['REQUEST_URI'])){
+/*
 // If Joomla actived but login trough GBM interface
 	session_start();
 }elseif(defined("ROOT_JOOMLA_PATH")){
@@ -26,11 +27,8 @@ if(eregi(".*/back/.*",$_SERVER['REQUEST_URI'])){
 	}
 }else{
 	session_start();
-}
+}*/
 
-
-
-// Variable de Session
 // Variable de Session
 if(!isset($_SESSION["ID_User"]) || $_SESSION["ID_User"]=="") {
 
@@ -52,8 +50,7 @@ if(!isset($_SESSION["ID_User"]) || $_SESSION["ID_User"]=="") {
 
 if (!(isset($_SESSION["FO_VALID_USER"]))&& $_SESSION["ID_User"] <> "Guest"){
 
-	//include_once("/home/svn/public_html/gbm/back_FO/inc/inc.php");
-	//include_once("/home/svn/public_html/gbm_ob/back_FO/inc/inc.php");
+
 	if (file_exists("../../../gbm.conf.php")){
 		require_once("../../../gbm.conf.php");	
 	}elseif(file_exists("../../gbm.conf.php")){
