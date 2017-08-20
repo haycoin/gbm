@@ -13,11 +13,14 @@ function testEqual(&$args, $val1, $val2){
 	testSaveResult($args, $val1);
 }
 
-function testNotEmpty(&$args, $val){
+function testNotEmpty(&$args, $val, $saveValue = TRUE){
 	$args['counterTest']++;
 	if(empty($val)){
 		$args['counterError']++;
 		$val = DICO_WORD_ERROR;
+	}
+	if(!$saveValue){
+		$val = 'Set $saveValue to TRUE to see result';
 	}
 	testSaveResult($args, $val);
 }
@@ -55,14 +58,20 @@ function testSetFilePath(&$args, $pathFile){
 }
 
 function testExample($fctname, $fctsname){
+	
+$path = str_replace(array('test_back_', 'inc_', '_'), array('', 'inc/', '.'), $fctsname).'.php';	
+	
 	return "
 Error, Create function, Replace TRUE, FALSE for your === test: 
-<pre>function ".$fctname."(){
+<pre style='border: 1px dashed #AAAAAA; color:#3333FF;'>include_once ROOT_FOLDER.\"".$path."\";
+
+function ".$fctname."(){
 	".'$testFileList[]	=\''.$fctsname.'_yourFct\';'."
 	return $"."testFileList;
 }
 
 function ".$fctsname.'_yourFct(&$args){'."
 	testEqual($"."args,TRUE,FALSE);
+	//testNotEmpty($"."args, $"."val);
 }</pre>";
 }

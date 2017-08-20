@@ -2,7 +2,7 @@
 /**
  * Class for all entities 
  *
- * Include this file into your code <code>include_once(ROOT_FOLDER."GBM_Entity/entity.class.php");</code>
+ * Include this file into your code <code>include_once(ROOT_FOLDER."inc/entity.class.php");</code>
  *
  * @author Alec Avedisyan
  * @copyright 2017 Sparkou.com
@@ -18,7 +18,7 @@
 	/**
 	* Get the Entity informations (FO_Entity)
 	* 
-	* @param mixed $ID_Entity
+	* @param mixed $ID_Entityurban@thd.ch
 	* @return array
 	*/
    function get($ID_Entity){
@@ -39,7 +39,10 @@
 		   $res = db($sql);
 		   return $res[0]['id'];
    }
+   
 
+   
+   
    
    /**
 	* Build query that update one value for an Entity (FO_Entity)
