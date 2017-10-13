@@ -14,17 +14,21 @@
 define(GBM_SYS_Var_Name_Parent, 75);
 
 class Relation{
+	
+	var $exec=TRUE;
+	var $cols;
 
 	 function add($ID_Entity1, $ID_Entity2, $ID_Type, $ID_Status=''){
 		$cols = array(		'ID_Entity1'	=>	$ID_Entity1,
 							'ID_Entity2'	=>	$ID_Entity2,
 							'ID_Type'		=>	$ID_Type,
 							'ID_Status'		=>	$ID_Status);
-		return dbInsert($cols, 'GBM_Relation'); 
+		$this->cols = $cols;
+		return dbInsert($cols, 'GBM_Relation', $this->exec); 
 	 }
 	 
 	 function addAsParent($ID_Entity1, $IsParentOfEntity){
-		 $this->add($ID_Entity1, $IsParentOfEntity, GBM_SYS_Var_Name_Parent);
+		 return $this->add($ID_Entity1, $IsParentOfEntity, GBM_SYS_Var_Name_Parent);
 	 }
 
 	 function getByType($ID_Type, $ID_Entity, $Field='ID_Entity1'){
@@ -40,6 +44,10 @@ class Relation{
 	 
 	 function getChilds($ID_Entity){
 		 return $this->getByType(GBM_SYS_Var_Name_Parent, $ID_Entity);
+	 }
+	 
+	 function setExec2View($val = FALSE){
+		 $this->exec = $val;
 	 }
 	 
  }

@@ -15,13 +15,16 @@
 	 
 	 var $entity; 
 	 
-	/**
-	* Get the Entity informations (FO_Entity)
-	* 
-	* @param mixed $ID_Entityurban@thd.ch
-	* @return array
-	*/
-   function get($ID_Entity){
+	 /**
+	  * Get the Entity informations (FO_Entity)
+	  * @param type $ID_Entity
+	  * @param type $secure		Only entity that are createdby owner
+	  * @return type
+	  */
+   function get($ID_Entity, $secure=TRUE){
+	   if($secure){
+		   // Todo
+	   }
 	   $sql = 'SELECT * FROM GBM_Entity WHERE ID_Entity=?';
 	   $this->entity = db($sql, $ID_Entity);
 	   return $this->entity;
