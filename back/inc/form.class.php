@@ -12,12 +12,15 @@ class Form{
 	var $method;
 	var $validForm = TRUE;
 	var $js;
-	var $jsInclude = array('boostrap-datepicker'=>FALSE);
-	var $ro = FALSE;
+	var $jsInclude = array('boostrap-datepicker'=>FALSE); 
+	var $ro = FALSE;			// ReadOnly
 	var $cssLabel = 'formLabel';
 	var $inlineForce = FALSE;
 	var $initAjax = FALSE;
-  var $paramsAjax = FALSE;
+	var $paramsAjax = FALSE;
+	var $count = array();
+	var $showError = FALSE;
+	var $allplaceholder = FALSE;
 	
 	function __construct($name, $style = 'div', $method='POST') {
 		$this->setStyle($style);
@@ -34,8 +37,10 @@ class Form{
 		$this->ro = $readOnly;
 		if($readOnly){
 			$this->cssLabel = 'formRo-label';
-			foreach ($datas[0] as $key=>$val){
-				$_POST[$key] = $val;
+			if(sizeof($datas)>0){		
+				foreach ($datas as $key=>$val){
+					$_POST[$key] = $val;
+				}
 			}
 		}
 	}
@@ -50,28 +55,61 @@ class Form{
 	 * @param type $params
 	 * 
 	 * @example array type SYS_Var ($sv), usage : $sv->getByGroup('CountryISO'); // 2 Column per array, ID_Var and Name. 
+	 * @example array $cantonList[] = array('ID_Var'=>'VD',	'Name'=>'Vaud');
 	 * 
 	 */
 	function addField($Name, $Label='', $Type='text', $mandatory=FALSE, $defaultValue='', $params=''){	
-		if(trim($_POST[$Name])!=''){
-			$_SESSION['form'][$this->name][$Name] = $_POST[$Name];
-			$defaultValue = $_POST[$Name];
-		}
-
-		if($mandatory && !$this->ro){
-			$mand = '<span class="formMandSign"></span>';
-			$mandHtml = ' required ';
-			if(isset($_SESSION['form'][$this->name]) && $this->valid()){
-				//$params = $params.' class="formMandError" ';
+		// Count
+		if(!in_array($Type, array('submit', 'hidden'))){
+			$this->count['name'][$Name]++;
+			if($this->count['name'][$Name]==1){
+				$this->count['field']++;
+			}
+			if(trim($_POST[$Name])!=''){
+				$this->count['filled']++;
 			}
 		}
+						
+		if(trim($_POST[$Name])!=''){
+			$_SESSION['form'][$this->name][$Name] = $_POST[$Name];
+			if(!($Type=='radio' || $Type=='submit')){
+				$defaultValue = $_POST[$Name];
+			}
+		}elseif($defaultValue==''){
+			$defaultValue = $_SESSION['form'][$this->name][$Name];
+		}
+
+		
+		if($mandatory && !$this->ro){
+			if($this->allplaceholder){
+				$mand = '*';
+			}else{
+				$mand = '<span class="formMandSign"></span>';
+			}
+			
+			$mandHtml = ' required="required" ';
+			
+			if($this->showError && (trim($_SESSION['form'][$this->name][$Name])=='' || trim($_POST[$Name])=='') ){
+				$params .= ' class="formMandError" ';
+			}
+			
+			/*
+			if(isset($_SESSION['form'][$this->name]) && $this->valid()){
+				$params = $params.' class="formMandError" ';
+			}*/
+		}
 		if($Label!=''){
-			$l = '<label for="'.$Name.'" class="'.$this->cssLabel.'">'.$Label.$mand.'</label>';
+			if($this->allplaceholder){
+				$ph = $Label.$mand;
+				$phh = ' placeholder="'.$ph.'" ';		
+			}else{
+				$l = '<label for="'.$Name.'" class="'.$this->cssLabel.'">'.$Label.$mand.'</label>';
+			}
 		}
 		$fparams = ' id="'.$Name.'"  name="'.$Name.'"  '.$mandHtml.' '.$params;
 		
-		if($this->ro){
-			if(is_array($Type)){
+		if($this->ro && !in_array($Type, array('radio'))){
+			if(is_array($Type)){			// In case of select for example
 				foreach($Type as $vt){
 					if($vt['ID_Var']==$defaultValue){
 						$defaultValue=$vt['Name'];
@@ -79,8 +117,19 @@ class Form{
 					}
 				}
 			}
-			$o = '<div class="formRo-val">'.$defaultValue.'</div>';
+			if(!in_array($Type, array('submit', 'hidden'))){
+				$o = '<div class="formRo-val">'.$defaultValue.'</div>';
+			}
+			
 		}elseif(is_array($Type)){
+			
+			if(is_array($Type['datalist'])){
+				$Type = $Type['datalist'];
+				$datalist = TRUE;
+			}else{
+				$datalist = FALSE;
+			}
+			
 			if(sizeof($Type)==0){
 				$o = DICO_WORD_PLEASE_CREATE_ONE.': <b>'.$Label.'</b>';
 			}else{
@@ -88,10 +137,18 @@ class Form{
 					$selected = '';
 					if((string)$key=='default'	&&	$_POST[$Name]==''){			$selected = 'selected';	}
 					if($defaultValue==$val['ID_Var']){							$selected = 'selected';	}
-					$ls .=  '<option value="'.$val['ID_Var'].'" '.$selected.'>'.$val['Name'].'</option>'; 
+					if($datalist){
+						$ls .=  '<option value="'.$val['ID_Var'].'" '.$selected.'>'.$val['Name'].'</option>'; 
+					}else{
+						$ls .=  '<option value="'.$val['ID_Var'].'" '.$selected.'>'.$val['Name'].'</option>'; 
+					}
 				}
-				$empty = '<option style="display:none" disabled selected value></option>';
-				$o = '<select '.$fparams.'>'.$empty.$ls.'<select>';
+				if($datalist){
+					$o = '<input list="'.$Name.'_lst" '.$fparams.' '.$phh.'><datalist  id="'.$Name.'_lst" >'.$ls.'</datalist>';
+				}else{
+					$empty = '<option disabled selected hidden value="">'.$ph.'</option>';
+					$o = '<select '.$fparams.'>'.$empty.$ls.'</select>';					
+				}
 			}
 		}elseif($Type=='hidden'){
 			$o = '<input '.$fparams.' value="'.$defaultValue.'" type="'.$Type.'" > ';
@@ -100,17 +157,31 @@ class Form{
 		}elseif($Type=='checkbox'){
 			$o = '<input '.$fparams.' value="'.$defaultValue.'" type="'.$Type.'" > '.$Label.$mand;
 			$l = '';
+		//}elseif($Type=='submit'){
+
 		}elseif($Type=='radio'){
-			$o = '<input '.$fparams.' value="'.$defaultValue.'" type="'.$Type.'" > '.$Label.$mand;
+			$checked = '';
+			if($_POST[$Name]==$defaultValue && $_POST[$Name]!=''){
+				$checked = ' checked="checked" ';
+			}
+			if($this->ro){
+				$disable = ' disabled ';
+			}
+			$o = '<input '.$fparams.$checked.' value="'.$defaultValue.'" type="'.$Type.'" '.$disable.' > '.$Label.$mand;
 			$l = '';
 		}elseif($Type=='textarea'){
 			$o = '<textarea '.$fparams.' >'.$defaultValue.'</textarea>';
 		}elseif($Type=='date'){
 			$this->jsInclude['boostrap-datepicker'] = TRUE;
-			$o = '<input '.$fparams.' value="'.$defaultValue.'" type="text">';
-			$this->js .= '<script> $(\'#'.$Name.'\').datepicker({ format: "dd.mm.yyyy"  });</script>';
+			$o = '<input '.$fparams.' value="'.$defaultValue.'" type="text" '.$phh.' class="form-control">';
+			$this->js .= '<script> $(\'#'.$Name.'\').datepicker({ format: "dd.mm.yyyy",autoclose: true  });</script>';
+		}elseif($Type=='datebirth'){ 
+			$yearCurr = date('Y')-100;
+			$this->jsInclude['boostrap-datepicker'] = TRUE;
+			$o = '<input '.$fparams.' value="'.$defaultValue.'" type="text" '.$phh.' class="form-control">';
+			$this->js .= '<script> $(\'#'.$Name.'\').datepicker({ format: "dd.mm.yyyy", startDate: \'01.01.'.$yearCurr.'\', endDate: \''.date('d.m.Y').'\', orientation: \'bottom right\', startView: "decade", autoclose: true  });</script>';
 		}elseif(in_array($Type, $this->stdType)){
-			$o = '<input '.$fparams.' value="'.$defaultValue.'" type="'.$Type.'">';
+			$o = '<input '.$fparams.' value="'.$defaultValue.'" type="'.$Type.'" '.$phh.'>';
 		}elseif(in_array($Type, $this->customType)){
     	$constName = strtoupper('PATTERN_'.$Type);
 			if(constant($constName)=='')	echo msg('Constant '.$constName.' not defined or include missing !', 'e');
@@ -125,7 +196,7 @@ class Form{
 				}		
 			}
 			
-			$o = $e.'<input '.$fparams.' value="'.$defaultValue.'" type="'.$Type.'" pattern="'.$pattex.'" title="'.$title.'" >';
+			$o = $e.'<input '.$fparams.' value="'.$defaultValue.'" type="'.$Type.'" pattern="'.$pattex.'" title="'.$title.'" '.$phh.'>';
 		}
 
 
@@ -269,8 +340,8 @@ document.getElementById(fname).value=\'+result[k][0]+\'
 		}
 	}
 	
-	function addFormTags($url='?'){
-		$this->output = '<form action="'.$url.'" method="'.$this->method.'">'.$this->output.'<input name="t" type="hidden" id="t" value="'.$this->getCurrentFormToken().'"></form>';
+	function addFormTags($url='?', $formName='myForm', $params = ''){
+		$this->output = '<form action="'.$url.'" method="'.$this->method.'" name="'.$formName.'" '.$params.' >'.$this->output.'<input name="t" type="hidden" id="t" value="'.$this->getCurrentFormToken().'"></form>';
 	}
 	
 	function addTitle($title){
@@ -342,11 +413,16 @@ document.getElementById(fname).value=\'+result[k][0]+\'
 	}
 	
 	function signUp($user=''){
+		
 		$this->validForm = FALSE;
 		//pr($user);pr($_POST);
 		if($_POST['password']==$_POST['password2'] && preg_match(PATTERN_PASSWORD, $_POST['password'])){
 			if($_SERVER['ID_User']=='guest' && preg_match(PATTERN_EMAIL, $_POST['username'])){
 				$this->validForm = TRUE;
+			}elseif($_SESSION['tmp_ID_User']!='' && $_SESSION['secretKey']=='passed'){
+				$user->getById($_SESSION['tmp_ID_User']);
+				$this->validForm = TRUE;
+				$_SESSION['ID_User'] = $user->ID_User;
 			}elseif($_SESSION['ID_User']!='guest' && $_SESSION['username']!=''){
 				$this->validForm = TRUE;				
 			}
@@ -363,7 +439,7 @@ document.getElementById(fname).value=\'+result[k][0]+\'
 			}
 			return TRUE;
 		}else{
-			if($_SESSION['ID_User']!='guest' && $_SESSION['username']!=''){
+			if($_SESSION['secretKey']=='passed' && $_SESSION['username']!=''){
 				$this->addHtml(DICO_WORD_USERNAME.' <b>'.$_SESSION['username'].'</b>');
 			}else{
 				$this->addField('username',	DICO_WORD_USERNAME,			'email',	TRUE, $email);
