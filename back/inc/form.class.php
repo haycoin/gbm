@@ -6,7 +6,7 @@ class Form{
 	var $style;
 	var $styles = array('div'=>array('<div>','</div><div>','</div>')); 
 	var $output;
-	var $stdType = array(  'submit', 'reset', 'radio', 'checkbox', 'button', 'color', 'number', 'range', 'time', 'hidden');
+	var $stdType = array(  'submit', 'reset', 'radio', 'checkbox', 'button', 'color', 'number', 'range', 'time', 'hidden', 'date');
 	var $customType = array('text', 'phone', 'email', 'textonly','password', 'money');
 	var $blockDivParams = '';
 	var $method;
@@ -50,7 +50,7 @@ class Form{
 	 * @param type $Name
 	 * @param type $Label
 	 * @param type $Type		can be 'text', 'textonly', 'phone', etc ... or an array, see below for array format
-	 * @param type $mandatory
+	 * @param type $required
 	 * @param type $defaultValue
 	 * @param type $params
 	 * 
@@ -58,7 +58,7 @@ class Form{
 	 * @example array $cantonList[] = array('ID_Var'=>'VD',	'Name'=>'Vaud');
 	 * 
 	 */
-	function addField($Name, $Label='', $Type='text', $mandatory=FALSE, $defaultValue='', $params=''){	
+	function addField($Name, $Label='', $Type='text', $required=FALSE, $defaultValue='', $params=''){	
 		// Count
 		if(!in_array($Type, array('submit', 'hidden'))){
 			$this->count['name'][$Name]++;
@@ -80,7 +80,7 @@ class Form{
 		}
 
 		
-		if($mandatory && !$this->ro){
+		if($required && !$this->ro){
 			if($this->allplaceholder){
 				$mand = '*';
 			}else{
@@ -171,7 +171,7 @@ class Form{
 			$l = '';
 		}elseif($Type=='textarea'){
 			$o = '<textarea '.$fparams.' >'.$defaultValue.'</textarea>';
-		}elseif($Type=='date'){
+		}elseif($Type=='dateJs'){
 			$this->jsInclude['boostrap-datepicker'] = TRUE;
 			$o = '<input '.$fparams.' value="'.$defaultValue.'" type="text" '.$phh.' class="form-control">';
 			$this->js .= '<script> $(\'#'.$Name.'\').datepicker({ format: "dd.mm.yyyy",autoclose: true  });</script>';
@@ -205,12 +205,57 @@ class Form{
 		if(!$this->inlineForce){ 			$this->blockDivParams = ''; 		}
 	}
 	
+	
+	function getJS($url){
+		$js = "
+			$(document).ready(function(){
+			$('#".$this->name."').bind('submit',function(){
+				$.ajax({
+					type: 'POST',
+					url: \"".$url."\",
+					data: $(this).serialize(),
+					success: function(data) { 
+						$('#$this->name').html(data);
+					},
+					error: function(data) { 
+							alert('Failed!'); 
+					}
+				});
+				return false;
+			});});";
+		return "\n".'<script type="text/javascript"> '.$js.'</script>';
+	}
+
+	function getCurrentFormToken($action = ""){
+		$tmpT = rand(1,100000);
+		if ($action == "newToken"){ 	
+			$_SESSION["tokenForm"] = md5($tmpT);
+			$t = $_SESSION["tokenForm"];
+		}else{
+			$t = $_SESSION["tokenForm"];
+		}		
+		return $t;		
+	}
+		
+	function resetToken(){
+		return $this->getCurrentFormToken("newToken");
+	}
+	
+	function inputToken(){
+		return '<input name="t" type="hidden" id="t" value="'.$this->getCurrentFormToken().'">';
+	}
+	
+	
+	/****************************************************** Unused function to check  OLD GBM ************************************************************/
+	
+	
+	
 	/**
 	 * 
 	 * @param type $Name
 	 * @param type $Label
 	 * @param type $Type
-	 * @param type $mandatory
+	 * @param type $required
 	 * @param type $defaultValue
 	 * @param string $params
 	 * 
@@ -227,7 +272,7 @@ class Form{
 			$val[] = 'Incompatible token';
 		}
 	 */
-	function addFieldAjax($Name, $Label='', $Path='', $mandatory=FALSE, $defaultValue='', $params='', $event='onkeyup', $minChar = 3, $callBackFct='callBackFct'){
+	function addFieldAjax($Name, $Label='', $Path='', $required=FALSE, $defaultValue='', $params='', $event='onkeyup', $minChar = 3, $callBackFct='callBackFct'){
 		$this->initAjax();
 		if($Path==''){
 			$Path = ROOT_URI_UI.'inc/field.ajax.php';
@@ -237,7 +282,7 @@ class Form{
 		
 		$innerDiv = '<div id="'.$Name.'_list_div" class="formAjaxResult"><datalist id="'.$Name.'_list"><option>'.DICO_WORD_MIN_3CHARS.'</option></datalist></div>';
 		$this->style[2] = $innerDiv.'</div>';
-		$this->addField($Name, $Label, 'text', $mandatory, $defaultValue, $params);
+		$this->addField($Name, $Label, 'text', $required, $defaultValue, $params);
 		$this->style[2] = '</div>';
 
 	}
@@ -316,7 +361,7 @@ document.getElementById(fname).value=\'+result[k][0]+\'
 	
 	function createDataArray($ID_Var, $Name, $Table, $Where){
 		$sql = 'SELECT '.$ID_Var.' as ID_Var, '.$Name.' as Name FROM '.$Table.' WHERE '.$Where;
-		return db($sql);
+		return dbm($sql);
 	}
 	
 	function formatDataArray($arr){
@@ -340,8 +385,8 @@ document.getElementById(fname).value=\'+result[k][0]+\'
 		}
 	}
 	
-	function addFormTags($url='?', $formName='myForm', $params = ''){
-		$this->output = '<form action="'.$url.'" method="'.$this->method.'" name="'.$formName.'" '.$params.' >'.$this->output.'<input name="t" type="hidden" id="t" value="'.$this->getCurrentFormToken().'"></form>';
+	function addFormTags($url='?', $params = ''){
+		$this->output = '<form action="'.$url.'" method="'.$this->method.'" id="'.$this->name.'" name="'.$this->name.'" '.$params.' >'.$this->output.$this->inputToken().'</form>';
 	}
 	
 	function addTitle($title){
@@ -397,20 +442,7 @@ document.getElementById(fname).value=\'+result[k][0]+\'
 		return '<link rel="stylesheet" href="'.ROOT_CSS.'std.inc.css">';
 	}
 	
-	function getCurrentFormToken($action = ""){
-		$tmpT = rand(1,100000);
-		if ($action == "newToken"){ 	
-			$_SESSION["tokenForm"] = md5($tmpT);
-			$t = $_SESSION["tokenForm"];
-		}else{
-			$t = $_SESSION["tokenForm"];
-		}		
-		return $t;		
-	}
-		
-	function resetToken(){
-		return $this->getCurrentFormToken("newToken");
-	}
+
 	
 	function signUp($user=''){
 		
