@@ -6,7 +6,8 @@ From    |To     |Values type|Grp|Comment
 0       |99     |FALSE, TRUE, No, Yes, Male, Female, Other||
 10      |29     |System Status||
 30      |39     |User Role||
-40      |79     |Contact Type||
+40      |74     |Contact Type||
+75      |79     |Relation Type||
 100     |399    |Country name  ||  ISO 3166-2  
 400     |699    |Currency code  || ISO 4217    
 700     |899    |GMT Cities list||
@@ -18,6 +19,10 @@ From    |To     |Values type|Grp|Comment
 -||||
 1200    |1299   |Metrics||
 1300    |1399   |Units||
+1400    |1499   |preg||
+1500    |1599   |Document||
+2000    |2499   |EntityType
+2500    |2999   |Action
 -||||
 100000  |-      |User Datas||
 

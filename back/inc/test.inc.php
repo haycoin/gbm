@@ -1,14 +1,18 @@
 <?php
 
-function testEqual(&$args, $val1, $val2){
+function testEqual(&$args, $val1, $val2, $comment=''){
 	$args['counterTest']++;
 	if($val1!=$val2){
 		$args['counterError']++;
-		$val = DICO_WORD_ERROR;
+		$val = colorize(DICO_WORD_ERROR);
 	}elseif(!($val1===$val2)){
 		$args['counterWarning']++;
 		$args['verbose'] .= 'Not strict equal, check type for <b>'.$args['currentFct'].'</b><br>';
 		$val = DICO_WORD_WARNING;
+	}else{
+		if($comment!=''){
+			$val1 = $comment; 
+		}
 	}
 	testSaveResult($args, $val1);
 }
@@ -17,7 +21,7 @@ function testNotEmpty(&$args, $val, $saveValue = TRUE){
 	$args['counterTest']++;
 	if(empty($val)){
 		$args['counterError']++;
-		$val = DICO_WORD_ERROR;
+		$val = colorize(DICO_WORD_ERROR);
 	}
 	if(!$saveValue){
 		$val = 'Set $saveValue to TRUE to see result';
@@ -25,8 +29,20 @@ function testNotEmpty(&$args, $val, $saveValue = TRUE){
 	testSaveResult($args, $val);
 }
 
+function testArrayEmpty(&$args, $val){
+	$args['counterTest']++;
+	foreach($val as $var){
+		if(!empty($var)){
+			$args['counterError']++;
+			$res .= $var.'<br>';
+		}
+	}
+	testSaveResult($args, colorize($res));
+}
+
+
 function testResult($args, $verbose = TRUE){
-	$args['outpout'] .= 'Tests: '.$args['counterTest'].' | Warning: '.$args['counterWarning'].' | Errors: '.$args['counterError'].'<br>';
+	$args['outpout'] .= 'Tests: '.$args['counterTest'].' | Warning: '.$args['counterWarning'].' | Errors: '.colorize($args['counterError']).'<br>';
 	return $args;
 }
 
@@ -39,6 +55,7 @@ function testSaveResult(&$args, $val){
 }
 
 function testSetFilePath(&$args, $pathFile){
+	$fctlst = array();
 	include_once ROOT_FOLDER_TEST.$pathFile.'.test.php';
 	$fctsname = testFlatName($pathFile);
 	$fctname = $fctsname.'_fctlst';
@@ -47,7 +64,9 @@ function testSetFilePath(&$args, $pathFile){
 		$args['counterError']++;
 		return $args;
 	}
+
 	eval('$fctlst = $fctname();');
+	//pr($fctlst);pr($fctname);
 	foreach($fctlst as $fct){
 		$args['currentFct'] = $fct;
 		eval(''.$fct.'($args);');
@@ -55,6 +74,10 @@ function testSetFilePath(&$args, $pathFile){
 	
 	$args['verbose'] .= '<BR>&nbsp;&nbsp;&nbsp;&nbsp; - Tested file: '.$pathFile.'';
 
+}
+
+function colorize($val, $color='#FF0000'){
+	return '<span style="font-weight:bold;color:'.$color.'">'.$val.'</span>';
 }
 
 function testExample($fctname, $fctsname){

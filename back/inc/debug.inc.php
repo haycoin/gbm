@@ -70,10 +70,10 @@ if(SERVER_TEST){
 	#apDiv1 {
 		position:fixed;
 		right:0px;
-		top:0px;
+		top:60px;
 		width:320px;
 		height:25px;
-		z-index:1;
+		z-index:100;
 		background-color: #996699;
 		margin: 0px;
 		padding: 0px;
@@ -117,4 +117,5 @@ if(SERVER_TEST){
 	</form>
 	<?php
 	}
+	
 }

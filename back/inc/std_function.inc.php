@@ -28,13 +28,90 @@ function pr($array, $display = TRUE){
 	
 }
 
-function msg($msg, $type='info'){
-		if($type=='error' || $type=='e'){
-			return '<div style="background-color:#EEEEFF;border: solid 1px #FF0000">'.$msg.'</div>';
+/**
+ * 
+ * @param type $msg
+ * @param type $type
+ * @param type $framework	gbm or bs for bootstrap
+ * @return boolean
+ */
+function msg($msg, $type='info', $framework='gbm'){
+		if($type=='error' || $type=='e'){ 
+			$cl = ' msgError';
+			$bs = ' alert-danger';
+		}elseif($type=='delete' || $type=='d'){ 
+			$cl = ' msgDelete';
+			$bs = ' alert-warning';
+		}elseif($type=='update' || $type=='u'){ 
+			$cl = ' msgUpdate';
+			$bs = ' alert-info';
+		}elseif($type=='insert' || $type=='i'){ 
+			$cl = ' msgInsert';
+			$bs = ' alert-info';
+		}elseif(($type=='cached' || $type=='c')){
+			if(!DEBUG_MODE_SHOW_CACHED){return FALSE;}
+			$cl = ' msgCached';
+			$bs = ' alert-secondary';
+		}elseif($type=='debug' || $type=='b'){ 
+			$br = debug_backtrace();
+			$msg .= ' <span style="color:#118278;">#'.$br[0]['line'].'</span>';
+			$cl = ' msgDebug';
+			$bs = ' alert-secondary';
+		}elseif($type=='report' || $type=='r'){
+			if($msg == ''){	$msg = DICO_ERR_PERMISSION;}
+			 $br = debug_backtrace();
+			echo '<div class="msgInfo msgError">'.$msg.' #'.$br[0]['line'].'<BR> IP : '.$_SERVER['REMOTE_ADDR'].'</div>'; exit(); // TODO Like noPermission , must add Reporting into SYS_Cache
+		}elseif($type=='fatal' || $type=='f'){ 
+			echo '<div class="msgInfo msgError">'.$msg.'</div>'; exit();
+		}
+		if($framework=='gbm'){
+			return '<div class="msgInfo'.$cl.'">'.$msg.'</div>';
 		}else{
-			return '<div style="background-color:#EEEEFF;border: solid 1px #AAAAFF">'.$msg.'</div>';
+			return '<div class="alert'.$bs.'">'.$msg.'</div>';
 		}
 }
+
+
+if(''==$_SESSION['lang']){
+	$_SESSION['lang'] = SYS_LANGUAGE_DEFAULT;
+}elseif(''!=$_GET['lang']){
+	$_SESSION['lang'] = $_GET['lang'];
+}
+
+function getLangInfo($lang='', $output='i'){
+	if(''==$lang){
+		$lang = $_SESSION['lang'];
+	}
+	$sv = new SYS_Var();
+	return $sv->getByValue($lang, 'Language', 'v', $output, TRUE);
+}
+
+/*
+ * Debug
+ */
+function _d($txt=''){
+	echo msg('Debug :'.$txt.'<hr>'.pr(debug_backtrace(),FALSE), 'd');
+}
+
+
+function getFromUrl($url){
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_URL,$url);
+	$res=curl_exec($ch);
+	curl_close($ch);
+	return $res;
+}
+
+
+
+/********************* UP New function *********** Down CHeck if util ********************3/
+
+
+
+
+
+
 
 /**
  * Unhackable string
@@ -386,6 +463,42 @@ function RedirectSessionKeep( $location, $include = FALSE){
 }
 
 /**
+ * JS Redirect
+ * 
+ * @param type $page
+ * @param string $timeMil
+ * @param type $keepSession
+ * @param type $targetId
+ * @param type $functionName
+ * @return type
+ */
+function redirect($page,$timeMil='0', $keepSession = FALSE, $targetId = "", $functionName="redirect"){
+	$script .= "\n<script>";
+	if ($targetId == ""){
+		$script .= "function ".$functionName."() ";
+		if ($page <> ""){
+			if ($keepSession){
+				$script .= "{window.location='".$page."?".PHPSESSID."=".$sid."' ";
+				}else{
+				$script .= "{window.location='".$page."' ";
+				}
+		}else{
+			$script .= "{location.reload() ";
+		}
+		$script .= "} \n setTimeout('redirect()',".$timeMil."); ";
+	}else{
+		$script .= "function ".$functionName."(){ ";
+		$script .= " var currentTime = new Date(); ";		
+		$script .= " window.parent.document.getElementById('".$targetId."').src = window.parent.document.getElementById('".$targetId."').src+\"?\"+currentTime.getTime();}";
+		$script .= " setTimeout('".$functionName."()',".$timeMil."); "."\n";
+	}
+	$script .= "</script>"."\n";
+return $script;
+}
+
+
+
+/**
  * Make a encriped Key
  * @access private
  * @param mixed $var
@@ -601,6 +714,15 @@ function hex2bin($str) {
     return $build;
 }}
 
+function hex2str($hex) {
+    $str = '';
+    for($i=0;$i<strlen($hex);$i+=2){
+		$str .= chr(hexdec(substr($hex,$i,2)));
+	}
+    return $str;
+}
+
+
 //	} 
 
 /**
@@ -654,10 +776,18 @@ function createFileName(){
 }
 
 
-function addIcon($filename, $attribute = "border='0'"){
-	$path_parts = pathinfo($filename);
-	if($path_parts['extension']==''){ $filename = $filename.'.png';}
-	return "<img src='".ROOT_URI_UI."img/icon/".$filename."' ".$attribute ." />";
+function addIcon($filename, $attribute = "border='0'", $svgFigure=FALSE){
+	if($svgFigure){
+		$path_parts = pathinfo($filename);
+		$ext = $path_parts['extension'];
+		if($ext==''){	$ext = 'svg'; $filename = $filename.'.'.$ext;}
+		if($ext=='svg'){
+			$pre = '<figure><span>';
+			$post = '</span></figure>';
+		}
+	}
+	
+	return $pre.'<img src="'.ROOT_URI_UI.'img/icon/'.$filename.'" '.$attribute.' />'.$post;
 }
 
 
@@ -785,4 +915,32 @@ function is_serialized($data){
     return false;
 } 
 
-?>
+function nb($val){
+	return number_format($val, 2, '.', "'");
+}
+
+
+
+
+/*** TODO *** DECREPATED USE CLASS TABLE */
+function makeTableInit(){
+	return '<link href="'.ROOT_SRC_DATATABLES_CSS.'" rel="stylesheet" type="text/css"/>';
+}
+
+/*** TODO *** DECREPATED USE CLASS TABLE */
+function makeTable($body, $header = '',$footer = '', $tableId = 'tid' , $params='class="display" cellspacing="0"' ){
+	if(sizeof($body)==0){
+		return FALSE;
+	}
+	if($header!=''){		$head = '<thead><tr><th>'.implode('</th><th>', $header).'</th></tr></thead>'; 	}
+	if($footer!=''){		$foot = '<tfoot><tr><th>'.implode('</th><th>', $footer).'</th></tr></tfoot>'; 	}
+	foreach($body as $vals){$trs .= '<tr><td>'.implode('</td><td>', $vals).'</td></tr>';}
+	$trs = '<tbody>'.$trs.'</tbody>';
+	return '<table id="'.$tableId.'" '.$params.' >'.$head.$trs.$foot.'</table>';
+}
+
+/*** TODO *** DECREPATED USE CLASS TABLE */
+function makeTableScript($additionalParams = '', $tableId='tid', $defaultParams = ' "paging":false, "ordering":true, "info":false, "select":false, "searching":false '){
+	if($additionalParams!=''){		$additionalParams .= ',';	}
+	return '<script type="text/javascript" class="init">$(document).ready(function() {	$(\'#'.$tableId.'\').DataTable({'.$additionalParams.$defaultParams.'});} );</script>';
+}

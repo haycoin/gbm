@@ -11,8 +11,8 @@
 
 include_once ROOT_FOLDER_UI.'inc/generated.pattern.php';
 include_once ROOT_FOLDER.'inc/send_mail.inc.php';
-		include_once ROOT_FOLDER."inc/cache.class.php";
-		include_once ROOT_FOLDER.'inc/user.class.php';
+include_once ROOT_FOLDER."inc/cache.class.php";
+include_once ROOT_FOLDER.'inc/user.class.php';
 include_once ROOT_FOLDER.'inc/db.inc.php';
 include_once ROOT_FOLDER.'inc/form.class.php';
 
@@ -36,7 +36,7 @@ class User{
 	var $ID_User;
 	var $username;
 	var $secureLevel;
-	var $linkValidyDelay = 3600*24;
+	var $linkValidyDelay = 3600*24*30; // Remove *30
 	var $logged = array();
 	
 	public function __construct($ID_User='') {
@@ -45,11 +45,12 @@ class User{
 		}
 	}
 	
-	function create($username, $password='', $secureLevel=9){ // TODO add check if user exist ! 
+	function create($username, $password='', $ID_Entity='', $secureLevel=9){ // TODO add check if user exist ! 
 		$username = trim(strtolower($username));
 		if(preg_match(PATTERN_EMAIL, $username)){
 			$cols = array(		'Username'	=>	$username,
 								'Password'	=>	$password,
+								'ID_User'	=>	$ID_Entity,
 								'SecureLevel'	=>	$secureLevel);
 			$this->ID_User = dbInsert($cols, 'GBM_SYS_User');
 			$this->username = $username;
@@ -62,15 +63,15 @@ class User{
 	function get($username, $field = 'Username'){
 		$sql = 'SELECT * FROM GBM_SYS_User WHERE '.$field.'=?';
 		$this->user = db($sql, $username);
-		if($this->user[0]['Username']==''){ 
+		if($this->user['Username']==''){ 
 			// User not found
 			$this->ID_User = 0;
 			return FALSE;
 		}else{
-			$this->username = $this->user[0]['Username'];
-			$ID_User = $this->user[0]['ID_User'];
+			$this->username = $this->user['Username'];
+			$ID_User = $this->user['ID_User'];
 			$this->ID_User = $ID_User;
-			$this->secureLevel = $this->user[0]['SecureLevel'];
+			$this->secureLevel = $this->user['SecureLevel'];
 			return $this->user;
 		}
 	}
@@ -81,7 +82,7 @@ class User{
 	
 	function setPassword($password){
 		if(trim($password)!='' && strlen($password)>=8){
-			$cols = array(	'Password'		=>	md5($password.SECRET_KEY),
+			$cols = array(	'Password'		=>	md5($password.SECRET_KEY),		// TODO : MD5 n'est pas sur ! Utiliser sha512
 							'SecureLevel'	=>	6);
 			dbUpdate($cols, 'GBM_SYS_User', 'ID_User='.$this->ID_User);
 			return TRUE;
@@ -98,7 +99,7 @@ class User{
 	}
 	
 	function verifyPassword($password){
-		if(md5($password.SECRET_KEY) == $this->user[0]['Password']){
+		if(md5($password.SECRET_KEY) == $this->user['Password']){
 			return TRUE;
 		}else{
 			return FALSE;
@@ -164,13 +165,14 @@ class User{
 			$this->resetPassword();
 			$this->verifyEmail('recover');
 			return FALSE;	
-		}elseif(strtotime($lastLog[0][Time])+10>time()){		// Avoid brut force
+		}elseif(strtotime($lastLog[Time])+10>time()){		// Avoid brut force
 			$ch->add(2500, 21, 2510, $this->ID_User, 'Login fail again', $_SERVER['REMOTE_ADDR']);	
 			return msg(DICO_ERR_LOGIN_WAIT, 'e');
-		}elseif($this->ID_User===FALSE || !$vp){		// Username not found or Woring password
+		}elseif($this->ID_User===FALSE || !$vp){				// Username not found or Wrong password
 			$ch->add(2500, 21, 2510, $this->ID_User, 'Login fail', $_SERVER['REMOTE_ADDR']);
 			return msg(DICO_ERR_LOGIN, 'e');
 		}elseif($vp){
+			$_SESSION['SecureLevel'] = $this->secureLevel;
 			return TRUE;
 		}
 	//	pr($this->user);		
@@ -198,16 +200,18 @@ class User{
 	 */
 	function valid($redirect = ''){
 		$f = new Form('login');
-
 		$log = $this->login($_POST['username'], $_POST['password']);
-
+		
+						
+			
 		if($this->secretKey($_GET['e'], $_GET['k'])===TRUE ){
 			// Faire les conditions suivant le Securelevel en cas de 2 factor p.ex
+
 			$this->get($_GET['e']);
 			//pr($this->user); 	$this->validDelay = 3600*24*30; // Testing
 			if($this->secureLevel==9 && $this->validDelay()){			// Profil is validated
 				$_SESSION['secretKey'] = 'passed';
-				$_SESSION['ID_User'] = $this->ID_User;
+				$_SESSION['tmp_ID_User'] = $this->ID_User; // Dangerous, do not uncomment otherwise privilege asumpstion
 				$_SESSION['username'] = $this->username;
 				$o .=  $f->signUp($this);
 			}else{
@@ -223,9 +227,10 @@ class User{
 				$o .=  $ff;
 			}
 		}elseif($log===TRUE){	
-			// Logged in 
+			// Logged in 		
 			$_SESSION['ID_User'] = $this->ID_User;
 			$_SESSION['username'] = $this->username;
+						
 			if('' != $_POST['redirect']){
 				$o = '<script type="text/javascript">window.location="'.$_POST['redirect'].'";</script>';
 			}
@@ -243,16 +248,60 @@ class User{
 	}
 	
 	
-	function secretKey($valE, $valid=''){
-		if('' == $valid){
-			return md5($valE.SECRET_KEY);
+	function secretKey($valE, $key='', $addParams=''){
+		// TODO $this->linkValidyDelay
+		if(constant('SECRET_KEY')==''){ 
+			echo msg('Set SECRET_KEY value into gbm.conf.php ', 'e'); 
+			exit();
+		}
+		
+		if('' == $key){
+			return md5(trim($valE).$addParams.SECRET_KEY);
 		}else{
-			if($valid==md5($valE.SECRET_KEY)){
+			if($key==md5(trim($valE).$addParams.SECRET_KEY)){
 				return TRUE;
 			}else{
 				return FALSE;
 			}
 		}
+	}
+	
+	function getSecretUrl($url, $username='', $addParams=''){
+		if($username!=''){
+			return $url.'?k='.$this->secretKey($username,'', $addParams).'&e='.$username;
+		}else{
+			return $url.'?k='.$this->secretKey($this->username,'', $addParams).'&e='.$this->username;
+		}
+		
+	}
+	
+	public static function isLogged(){
+		if(strtolower($_SESSION['ID_User'])=='guest' || $_SESSION['ID_User']==''){
+			return FALSE;
+		}else{
+			return TRUE;
+		}
+	}
+	
+	/**
+	 * If current user has SecureLevel <= 4 
+	 * 
+	 * @return boolean
+	 */
+	public static function isAdmin(){
+		if(trim($_SESSION['SecureLevel'])==''){	
+		}elseif($_SESSION['SecureLevel']==0){
+		}elseif($_SESSION['SecureLevel']<=4){
+			return TRUE;
+		}
+		return FALSE;
+	}
+	
+	public static function isOwner($id){
+		if($id == $_SESSION['ID_User']){
+			return TRUE;
+		}
+		return FALSE;
 	}
 	
 }

@@ -10,25 +10,43 @@
  * @version 3.0.0
  * @subpackage Includes
  */
-
+ 
  class Entity{
 	 
-	 var $entity; 
-	 
-	 /**
-	  * Get the Entity informations (FO_Entity)
-	  * @param type $ID_Entity
-	  * @param type $secure		Only entity that are createdby owner
-	  * @return type
-	  */
-   function get($ID_Entity, $secure=TRUE){
-	   if($secure){
-		   // Todo
-	   }
-	   $sql = 'SELECT * FROM GBM_Entity WHERE ID_Entity=?';
-	   $this->entity = db($sql, $ID_Entity);
+	var $entity; 
+	var $id;
+	var $shortCache = array();
+	
+	function __construct($id='') {
+
+		if($id!=''){
+			$this->entity = $this->get($id);
+			$this->id = $this->entity['ID_Entity'];
+		}else{
+			return FALSE;
+		}
+	}
+	
+	function get($ID_Entity, $shortCache = TRUE, $secure=TRUE){
+		if($secure){
+			// Todo
+		}
+		if(is_array($this->shortCache[$ID_Entity]) && $shortCache){
+			$this->entity = $this->shortCache[$ID_Entity];
+			if(DEBUG_MODE){ echo msg('Cached ID_Entity: <b>'.$ID_Entity.'</b>', 'c');}
+		}else{
+			$sql = 'SELECT * FROM GBM_Entity WHERE ID_Entity=?';
+			$res = db($sql, $ID_Entity);
+			$this->entity = $res;
+			$this->id = $this->entity['ID_Entity'];
+			$this->shortCache[$ID_Entity] = $this->entity;
+		}	   
 	   return $this->entity;
    }
+   
+	function getStatus(){
+		return $this->entity['ID_Status'];
+	}   
    
 	function create($ID_Type, $Name, $minorCols=array()){
 		$majorCols = array(	'ID_Type'	=>	$ID_Type,
@@ -36,16 +54,32 @@
 		$cols = array_merge($minorCols,$majorCols);
 		return dbInsert($cols, 'GBM_Entity');
    }
-
-   function last(){
-	   	   $sql = 'SELECT max(ID_Entity) as id FROM GBM_Entity';
-		   $res = db($sql);
-		   return $res[0]['id'];
+   
+   	function set($cols=array(), $secure=TRUE){ // TODO make a set secure with Entity that are related or he is author etc ... 
+		if($this->id!=''){
+			return dbUpdate($cols, 'GBM_Entity', ' ID_Entity='.(int)$this->id );
+		}else{
+			echo msg('Entity->set() failed, ID_Entity error ! ','e');
+			return FALSE;
+		}
    }
    
+	function last(){
+			$sql = 'SELECT max(ID_Entity) as id FROM GBM_Entity';
+			$res = db($sql);
+			return $res['id'];
+	}
 
+	function loadParams(){
+		 return json_decode($this->entity['Params'], TRUE);
+	 }
    
-   
+
+	function getVal($ID_Entity, $field = 'ID_Status'){
+		$sql = 'SELECT '.$field.' FROM GBM_Entity WHERE ID_Entity=?';
+		$val = db($sql, $ID_Entity);
+		return $val[$field];
+	}
    
    /**
 	* Build query that update one value for an Entity (FO_Entity)
