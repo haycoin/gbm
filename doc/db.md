@@ -1,3 +1,29 @@
+GBM.DB
+DB Version : 3.1 - 28.08.2020
+Source file Cryptolex.Cloud.Documentation
+
+
+In order to allow for a larger authorization field, the table is modified as follows
+
+Table **GBM_SYS_Right** :
+
+A new column is added **ID_Type** and a new Column ID_Block is renamed to **ID_Related**
+
+Example for Block Right : 
+
+| ID_User | ID_Block | S | I | U | D |
+|---------|----------|---|---|---|---|
+| 5       | 10       | 1 | 1 | 1 | 0 |
+
+Will become
+
+| ID_User | ID_Type | ID_Related | S | I | U | D |
+|---------|---------|------------|---|---|---|---|
+| 5       | 3005    | 10         | 1 | 1 | 1 | 0 |
+
+Impact on class right.class.php
+
+
 # GBM_SYS_Var
 GBM_SYS_Var store all the values that can be used into a standard database. Line from 1-99'999 are reserved for GBM you can start adding Datas from 100'000 
 
