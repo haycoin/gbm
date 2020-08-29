@@ -1,6 +1,8 @@
-GBM.DB
-DB Version : 3.1 - 28.08.2020
-Source file Cryptolex.Cloud.Documentation
+## GBM.DB
+
+#### DB Version : 3.1 - 28.08.2020
+
+Source file: https://github.com/haycoin/gbm/edit/master/doc/db.md
 
 
 In order to allow for a larger authorization field, the table is modified as follows
