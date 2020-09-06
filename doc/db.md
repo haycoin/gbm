@@ -9,7 +9,10 @@ In order to allow for a larger authorization field, the table is modified as fol
 
 Table **GBM_SYS_Right** :
 
-A new column is added **ID_Type** and a new Column ID_Block is renamed to **ID_Related**
+A two columns are added 
+**ID_Type** define the type of object having rights
+**Conditions** is a pseudo Where that filters data
+and the Column ID_Block is renamed to **ID_Related**
 
 Example for Block Right : 
 
@@ -19,9 +22,9 @@ Example for Block Right :
 
 Will become
 
-| ID_User | ID_Type | ID_Related | S | I | U | D |
-|---------|---------|------------|---|---|---|---|
-| 5       | 3005    | 10         | 1 | 1 | 1 | 0 |
+| ID_User | ID_Type | ID_Related | S | I | U | D |Conditions|
+|---------|---------|------------|---|---|---|---|----------|
+| 5       | 3005    | 10         | 1 | 1 | 1 | 0 |          |
 
 Impact on class right.class.php
 
